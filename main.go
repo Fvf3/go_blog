@@ -4,11 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go_blog/dao/mysql"
 	"go_blog/dao/redis"
 	"go_blog/logger"
+	"go_blog/pkg/snowflake"
 	"go_blog/routers"
 	"go_blog/settings"
 	"net/http"
@@ -47,11 +47,16 @@ func main() {
 		return
 	}
 	defer redis.Close()
+	//4.5 初始化雪花算法ID生成器
+	if err := snowflake.Init(settings.Conf.StartTime, settings.Conf.MachineID); err != nil {
+		fmt.Printf("snowflake init error:%s", err.Error())
+		return
+	}
 	//5.注册路由
 	r := routers.Setup()
 	//6.启动服务（优雅关机)
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", viper.GetInt("app.port")),
+		Addr:    fmt.Sprintf(":%d", settings.Conf.Port),
 		Handler: r,
 	}
 
