@@ -2,15 +2,26 @@ package logic
 
 import (
 	"go_blog/dao/mysql"
+	"go_blog/models"
 	"go_blog/pkg/snowflake"
 )
 
-func SignUp() {
+func SignUp(p *models.ParamSignUp) (err error) {
 	//查询用户名是否存在
-	mysql.QueryUserByUsername()
-	//检测密码安全性
+	if err := mysql.CheckUserExist(p.Username); err != nil {
+		return err
+	}
 	//生成UID
-	snowflake.GenID()
+	userID := snowflake.GenID()
+	//User实例
+	user := &models.User{
+		UserID:   userID,
+		Username: p.Username,
+		Password: p.Password,
+	}
 	//写入数据库
-	mysql.InsertUser()
+	if err := mysql.InsertUser(user); err != nil {
+		return err
+	}
+	return
 }

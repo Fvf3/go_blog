@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"go.uber.org/zap"
+	"go_blog/controller"
 	"go_blog/dao/mysql"
 	"go_blog/dao/redis"
 	"go_blog/logger"
@@ -47,9 +49,14 @@ func main() {
 		return
 	}
 	defer redis.Close()
-	//4.5 初始化雪花算法ID生成器
+	//4.1 初始化雪花算法ID生成器
 	if err := snowflake.Init(settings.Conf.StartTime, settings.Conf.MachineID); err != nil {
 		fmt.Printf("snowflake init error:%s", err.Error())
+		return
+	}
+	//4.2 初始化校验参数返回错误时使用的全局翻译器
+	if err := controller.InitTrans("zh"); err != nil {
+		fmt.Printf("Trans init err:%v", err.Error())
 		return
 	}
 	//5.注册路由
@@ -62,7 +69,7 @@ func main() {
 
 	go func() {
 		// 开启一个goroutine启动服务
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zap.L().Fatal("listen: ", zap.Error(err))
 		}
 	}()
