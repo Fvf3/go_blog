@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func Init(config *settings.LogConfig) (err error) {
+func Init(config *settings.LogConfig, mode string) (err error) {
 	//通过传入的config获取logger的配置
 	writeSyncer := getLogWriter(
 		config.FileName,
@@ -28,8 +28,20 @@ func Init(config *settings.LogConfig) (err error) {
 	if err != nil {
 		return
 	}
-	//zapcore所需三个参数：encoder：产生log的规则、writeSyncer：log输出的相关设置，l：log级别
-	core := zapcore.NewCore(encoder, writeSyncer, l)
+	var core zapcore.Core
+	if mode == "dev" {
+		//开发模式下日志在终端显示
+		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+		core = zapcore.NewTee( //合并多个zapcore
+			zapcore.NewCore(encoder, writeSyncer, l),
+			//使用终端格式的编码器，通过zapcore.Lock()将os.Stdout标准输出转化为writerSyncer，级别为debug
+			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zapcore.DebugLevel),
+		)
+	} else {
+		//zapcore所需三个参数：encoder：产生log的规则、writeSyncer：log输出的相关设置，l：log级别
+		core = zapcore.NewCore(encoder, writeSyncer, l)
+	}
+
 	lg := zap.New(core, zap.AddCaller())
 	//替换zap库中的全局logger
 	zap.ReplaceGlobals(lg) //替换后只需要使用 zap.L()即可使用logger

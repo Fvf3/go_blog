@@ -34,11 +34,40 @@ func SignUpHandler(c *gin.Context) {
 	if err := logic.SignUp(p); err != nil {
 		zap.L().Error("Sign up process error", zap.Error(err))
 		c.JSON(http.StatusOK, gin.H{
-			"msg": "注册失败",
+			"msg": fmt.Sprintf("注册失败，%v", err.Error()),
 		})
+		return
 	}
 	//返回响应
 	c.JSON(http.StatusOK, gin.H{
 		"msg": "注册成功",
+	})
+}
+func LoginHandler(c *gin.Context) {
+	//参数校验
+	p := new(models.ParamLogin)
+	if err := c.ShouldBind(p); err != nil {
+		zap.L().Error("Login param invalid", zap.Error(err))
+		errs, ok := err.(validator.ValidationErrors)
+		if ok {
+			c.JSON(http.StatusOK, gin.H{
+				"msg": removeTopStruct(errs.Translate(trans)),
+			})
+		} else {
+			c.JSON(http.StatusOK, gin.H{"msg": err.Error()})
+		}
+		return
+	}
+	//逻辑处理
+	if err := logic.Login(p); err != nil {
+		zap.L().Error("Login process error", zap.Error(err))
+		c.JSON(http.StatusOK, gin.H{
+			"msg": fmt.Sprintf("登录失败，%v", err.Error()),
+		})
+		return
+	}
+	//返回响应
+	c.JSON(http.StatusOK, gin.H{
+		"msg": "还需要设置session或者cookie记录登陆状态",
 	})
 }

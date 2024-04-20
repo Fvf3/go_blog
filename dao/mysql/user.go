@@ -10,16 +10,13 @@ import (
 const secret = "fvf3"
 
 // CheckUserExist 查询用户名是否存在
-func CheckUserExist(username string) (err error) {
+func CheckUserExist(username string) (bool, error) {
 	sqlStr := `select count(user_id) from user where username=?`
 	var count int
-	if err = db.Get(&count, sqlStr, username); err != nil {
-		return
+	if err := db.Get(&count, sqlStr, username); err != nil {
+		return false, err
 	}
-	if count > 0 {
-		return errors.New("user already exist")
-	}
-	return
+	return count > 0, nil
 }
 
 // InsertUser 插入用户
@@ -30,7 +27,18 @@ func InsertUser(user *models.User) (err error) {
 	_, err = db.Exec(sqlStr, user.UserID, user.Username, password)
 	return
 }
-
+func CheckPasswordCorrect(username, password string) error {
+	newPassword := encrypt(password, secret)
+	var oldPassword string
+	sqlStr := `select password from user where username=?`
+	if err := db.Get(&oldPassword, sqlStr, username); err != nil {
+		return err
+	}
+	if newPassword != oldPassword {
+		return errors.New("密码错误")
+	}
+	return nil
+}
 func encrypt(plainText, key string) string {
 	h := md5.New()
 	h.Write([]byte(key))
