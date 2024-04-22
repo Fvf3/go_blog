@@ -1,9 +1,9 @@
 package logic
 
 import (
-	"errors"
 	"go_blog/dao/mysql"
 	"go_blog/models"
+	"go_blog/pkg/jwt"
 	"go_blog/pkg/snowflake"
 )
 
@@ -14,7 +14,7 @@ func SignUp(p *models.ParamSignUp) error {
 		return err
 	}
 	if exist {
-		return errors.New("用户名已存在")
+		return mysql.ErrorUserExist
 	}
 	//生成UID
 	userID := snowflake.GenID()
@@ -27,13 +27,22 @@ func SignUp(p *models.ParamSignUp) error {
 	//写入数据库
 	return mysql.InsertUser(user)
 }
-func Login(p *models.ParamLogin) error {
+func Login(p *models.ParamLogin) (token string, err error) {
 	exist, err := mysql.CheckUserExist(p.Username)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !exist {
-		return errors.New("用户名不存在")
+		return "", mysql.ErrorUserNotExist
 	}
-	return mysql.CheckPasswordCorrect(p.Username, p.Password)
+	user := &models.User{
+		Username: p.Username,
+		Password: p.Password,
+	}
+	if err = mysql.CheckPasswordCorrect(user); err != nil {
+		return "", err
+	}
+	//生成JWT token
+	return jwt.GenToken(user.UserID, user.Username)
+
 }

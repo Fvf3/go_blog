@@ -1,13 +1,14 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+	"go_blog/dao/mysql"
 	"go_blog/logic"
 	"go_blog/models"
-	"net/http"
 )
 
 // 处理注册请求
@@ -18,14 +19,10 @@ func SignUpHandler(c *gin.Context) {
 		zap.L().Error("Sign up param invalid", zap.Error(err))
 		errs, ok := err.(validator.ValidationErrors) //只翻译validator校验错误的内容
 		if !ok {
-			c.JSON(http.StatusOK, gin.H{
-				"msg": err.Error(),
-			})
+			ResponseError(c, CodeServerBusy) //其他错误
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"msg": removeTopStruct(errs.Translate(trans)), //只有ValidationErrors才有Translate，函数传翻译器, 去除错误中的结构体名称
-		})
+		ResponseErrorWithMsg(c, CodeInvalidParam, removeTopStruct(errs.Translate(trans))) //校验出错
 		return
 	}
 	//校验请求参数是否符合业务规则在validator中进行
@@ -33,16 +30,17 @@ func SignUpHandler(c *gin.Context) {
 	//业务处理
 	if err := logic.SignUp(p); err != nil {
 		zap.L().Error("Sign up process error", zap.Error(err))
-		c.JSON(http.StatusOK, gin.H{
-			"msg": fmt.Sprintf("注册失败，%v", err.Error()),
-		})
+		if errors.Is(err, mysql.ErrorUserExist) {
+			ResponseError(c, CodeUserExist) //用户已存在
+		} else {
+			ResponseError(c, CodeServerBusy) //数据库操作出错
+		}
 		return
 	}
-	//返回响应
-	c.JSON(http.StatusOK, gin.H{
-		"msg": "注册成功",
-	})
+	ResponseSuccess(c, nil)
 }
+
+// 处理登陆请求，返回token
 func LoginHandler(c *gin.Context) {
 	//参数校验
 	p := new(models.ParamLogin)
@@ -50,24 +48,24 @@ func LoginHandler(c *gin.Context) {
 		zap.L().Error("Login param invalid", zap.Error(err))
 		errs, ok := err.(validator.ValidationErrors)
 		if ok {
-			c.JSON(http.StatusOK, gin.H{
-				"msg": removeTopStruct(errs.Translate(trans)),
-			})
+			ResponseErrorWithMsg(c, CodeInvalidParam, removeTopStruct(errs.Translate(trans))) //校验出错
 		} else {
-			c.JSON(http.StatusOK, gin.H{"msg": err.Error()})
+			ResponseError(c, CodeServerBusy) // 其他错误
 		}
 		return
 	}
 	//逻辑处理
-	if err := logic.Login(p); err != nil {
+	token, err := logic.Login(p)
+	if err != nil {
 		zap.L().Error("Login process error", zap.Error(err))
-		c.JSON(http.StatusOK, gin.H{
-			"msg": fmt.Sprintf("登录失败，%v", err.Error()),
-		})
+		if errors.Is(err, mysql.ErrorUserNotExist) {
+			ResponseError(c, CodeUserNotExist) //用户不存在
+		} else if errors.Is(err, mysql.ErrPasswordInvalid) {
+			ResponseError(c, CodeInvalidPassword) //密码错误
+		} else {
+			ResponseError(c, CodeServerBusy) //数据库查询出错
+		}
 		return
 	}
-	//返回响应
-	c.JSON(http.StatusOK, gin.H{
-		"msg": "还需要设置session或者cookie记录登陆状态",
-	})
+	ResponseSuccess(c, token)
 }

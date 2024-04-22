@@ -9,6 +9,12 @@ import (
 
 const secret = "fvf3"
 
+var (
+	ErrorUserExist     = errors.New("用户名已存在")
+	ErrorUserNotExist  = errors.New("用户名不存在")
+	ErrPasswordInvalid = errors.New("密码错误")
+)
+
 // CheckUserExist 查询用户名是否存在
 func CheckUserExist(username string) (bool, error) {
 	sqlStr := `select count(user_id) from user where username=?`
@@ -27,15 +33,14 @@ func InsertUser(user *models.User) (err error) {
 	_, err = db.Exec(sqlStr, user.UserID, user.Username, password)
 	return
 }
-func CheckPasswordCorrect(username, password string) error {
-	newPassword := encrypt(password, secret)
-	var oldPassword string
-	sqlStr := `select password from user where username=?`
-	if err := db.Get(&oldPassword, sqlStr, username); err != nil {
+func CheckPasswordCorrect(user *models.User) error {
+	newPassword := encrypt(user.Password, secret)
+	sqlStr := `select user_id,password from user where username=?`
+	if err := db.Get(user, sqlStr, user.Username); err != nil {
 		return err
 	}
-	if newPassword != oldPassword {
-		return errors.New("密码错误")
+	if newPassword != user.Password {
+		return ErrPasswordInvalid
 	}
 	return nil
 }
