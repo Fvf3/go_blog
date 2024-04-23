@@ -3,17 +3,10 @@ package mysql
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"go_blog/models"
 )
 
 const secret = "fvf3"
-
-var (
-	ErrorUserExist     = errors.New("用户名已存在")
-	ErrorUserNotExist  = errors.New("用户名不存在")
-	ErrPasswordInvalid = errors.New("密码错误")
-)
 
 // CheckUserExist 查询用户名是否存在
 func CheckUserExist(username string) (bool, error) {
@@ -40,7 +33,7 @@ func CheckPasswordCorrect(user *models.User) error {
 		return err
 	}
 	if newPassword != user.Password {
-		return ErrPasswordInvalid
+		return ErrorPasswordInvalid
 	}
 	return nil
 }

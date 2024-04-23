@@ -11,3 +11,18 @@ CREATE TABLE `user` (--``包裹列名或表名以使用特殊字符、区分大�
     unique key `idx_username` (`username`) using btree,--给属性设置一个用于作为索引的别名
     unique key `idx_user_id` (`user_id`) using btree
 )engine=InnoDB default charset=utf8mb4 collate=utf8mb4_general_ci;
+
+Drop table if exists `community`;
+create table `community`
+(
+    `id`             int(11) not null auto_increment,
+    `community_id`   int(10) unsigned not null,
+    `community_name` varchar(128) collate utf8mb4_general_ci not null,
+    `introduction`   varchar(256) collate utf8mb4_general_ci not null,
+    `create_time`    timestamp                               not null default current_timestamp,
+    `update_time`    timestamp                               not null default current_timestamp on update current_timestamp,
+    primary key (`id`),
+    unique key `idx_community_id` (`community_id`),
+    unique key `idx_community_name` (`community_name`)
+)engine=InnoDB default charset=utf8mb4 collate=utf8mb4_general_ci;
+)

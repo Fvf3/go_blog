@@ -46,7 +46,8 @@ func LoginHandler(c *gin.Context) {
 	p := new(models.ParamLogin)
 	if err := c.ShouldBind(p); err != nil {
 		zap.L().Error("Login param invalid", zap.Error(err))
-		errs, ok := err.(validator.ValidationErrors)
+		var errs validator.ValidationErrors
+		ok := errors.As(err, &errs) //对错误进行断言
 		if ok {
 			ResponseErrorWithMsg(c, CodeInvalidParam, removeTopStruct(errs.Translate(trans))) //校验出错
 		} else {
@@ -60,7 +61,7 @@ func LoginHandler(c *gin.Context) {
 		zap.L().Error("Login process error", zap.Error(err))
 		if errors.Is(err, mysql.ErrorUserNotExist) {
 			ResponseError(c, CodeUserNotExist) //用户不存在
-		} else if errors.Is(err, mysql.ErrPasswordInvalid) {
+		} else if errors.Is(err, mysql.ErrorPasswordInvalid) {
 			ResponseError(c, CodeInvalidPassword) //密码错误
 		} else {
 			ResponseError(c, CodeServerBusy) //数据库查询出错
