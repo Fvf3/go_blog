@@ -42,3 +42,9 @@ func encrypt(plainText, key string) string {
 	h.Write([]byte(key))
 	return hex.EncodeToString(h.Sum([]byte(plainText)))
 }
+func GetUserByID(uid int64) (user *models.User, err error) {
+	sqlStr := `select username,user_id from user where user_id=?`
+	user = new(models.User)
+	err = db.Get(user, sqlStr, uid)
+	return
+}
