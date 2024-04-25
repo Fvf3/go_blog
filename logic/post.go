@@ -1,17 +1,24 @@
 package logic
 
 import (
+	"fmt"
 	"go.uber.org/zap"
 	"go_blog/dao/mysql"
+	"go_blog/dao/redis"
 	"go_blog/models"
 	"go_blog/pkg/snowflake"
 )
 
 func CreatePost(p *models.Post) (err error) {
 	//雪花算法生成帖子id
-	p.ID = snowflake.GenID()
+	p.PostID = snowflake.GenID()
 	//保存到数据库
-	return mysql.CreatePost(p)
+	err = mysql.CreatePost(p)
+	if err != nil {
+		return
+	}
+	return redis.CreatePost(p.PostID)
+
 }
 
 func GetPost(post_id int64) (data *models.ApiPostDetail, err error) {
@@ -65,4 +72,14 @@ func GetPostList(offset, limit int64) ([]*models.ApiPostDetail, error) {
 		dataList = append(dataList, data)
 	}
 	return dataList, nil
+}
+
+//确保展示的帖子是最新的或者热度高的
+//一天有86400秒，当帖子的票数大于200 那么帖子就存活到下一天，因此一票为86400/200=432分
+
+//为了减少服务器压力，每个帖子仅在有效期内允许投票，到期后将票数持久化存储，未到期的数据保存在redis中
+
+// VotePost 投票分数算法的实现
+func VotePost(userID int64, p *models.ParamVote) error {
+	return redis.VoteForPost(fmt.Sprintf("%d", userID), p.PostID, float64(*p.Direction))
 }

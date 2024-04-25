@@ -26,6 +26,8 @@ func InsertUser(user *models.User) (err error) {
 	_, err = db.Exec(sqlStr, user.UserID, user.Username, password)
 	return
 }
+
+// CheckPasswordCorrect 校验用户密码是否正确，并将用户ID写入传入的user指针
 func CheckPasswordCorrect(user *models.User) error {
 	newPassword := encrypt(user.Password, secret)
 	sqlStr := `select user_id,password from user where username=?`
