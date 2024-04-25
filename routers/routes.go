@@ -23,6 +23,7 @@ func Setup(mode string) *gin.Engine {
 		v1.GET("/community/:id", controller.CommunityDetailHandler)
 		v1.POST("/post", controller.CreatePostHandler)
 		v1.GET("/post/:id", controller.GetPostHandler)
+		v1.GET("/posts", controller.GetPostListHandler)
 	}
 	r.GET("/hello", func(c *gin.Context) {
 		c.String(http.StatusOK, "hello")

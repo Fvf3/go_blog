@@ -17,7 +17,7 @@ func CreatePostHandler(c *gin.Context) {
 		return
 	}
 	//获取用户ID
-	AuthorID, err := GetCurrentUser(c)
+	AuthorID, err := getCurrentUser(c)
 	if err != nil {
 		ResponseError(c, CodeAuthEmpty) //用户ID为空，需要登录
 		return
@@ -45,6 +45,16 @@ func GetPostHandler(c *gin.Context) {
 	data, err := logic.GetPost(post_id)
 	if err != nil {
 		zap.L().Error("logic.GetPost failed", zap.Error(err))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+	ResponseSuccess(c, data)
+}
+func GetPostListHandler(c *gin.Context) {
+	offset, limit := getPageInfo(c)
+	data, err := logic.GetPostList(offset, limit)
+	if err != nil {
+		zap.L().Error("logic.GetPostList failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)
 		return
 	}
