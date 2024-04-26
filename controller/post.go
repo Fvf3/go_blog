@@ -10,11 +10,6 @@ import (
 	"strconv"
 )
 
-const (
-	orderTime  = "time"
-	orderScore = "score"
-)
-
 func CreatePostHandler(c *gin.Context) {
 	//获取参数
 	p := new(models.Post)
@@ -58,8 +53,8 @@ func GetPostHandler(c *gin.Context) {
 	ResponseSuccess(c, data)
 }
 func GetPostListHandler(c *gin.Context) {
-	offset, limit := getPageInfo(c)
-	data, err := logic.GetPostList(offset, limit)
+	page, size := getPageInfo(c)
+	data, err := logic.GetPostList(page, size)
 	if err != nil {
 		zap.L().Error("logic.GetPostList failed", zap.Error(err))
 		ResponseError(c, CodeServerBusy)
@@ -68,21 +63,29 @@ func GetPostListHandler(c *gin.Context) {
 	ResponseSuccess(c, data)
 }
 
-// GetPostListHandler2 依据前端参数动态获取帖子列表
-func GetPostListHandler2(c *gin.Context) {
+// GetPostList2Handler 依据前端参数动态获取帖子列表
+func GetPostList2Handler(c *gin.Context) {
 	//1.参数处理
 	p := &models.ParamPostList{
-		Page:  1,
-		Size:  10,
-		Order: orderTime,
+		CommunityID: -1,
+		Page:        1,
+		Size:        10,
+		Order:       models.OrderTime,
 	}
 	if err := c.ShouldBindQuery(p); err != nil {
 		zap.L().Error("get post list failed", zap.Error(err))
 		ResponseError(c, CodeInvalidParam)
 		return
 	}
-	//2.从redis查询pid
-	//3.依据pid从mysql获取帖子详情
+	//2.从redis查询pid 并依据pid从mysql获取帖子详情，返回拼接后的结果
+	data, err := logic.GetPostList2(p)
+	if err != nil {
+		zap.L().Error("logic.GetPostList2 failed", zap.Error(err))
+		ResponseError(c, CodeServerBusy)
+		return
+	}
+	ResponseSuccess(c, data)
+
 }
 
 // VotePostHandler 为帖子点赞或点踩

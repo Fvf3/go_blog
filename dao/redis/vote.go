@@ -13,6 +13,7 @@ const (
 
 var (
 	ErrVoteTimeExpire = errors.New("投票时间已结束")
+	ErrorVoteRepeat   = errors.New("重复投票")
 )
 
 func VoteForPost(uid, pid string, direction float64) error { //由于ZScore方法键为string，返回值为float
@@ -23,6 +24,10 @@ func VoteForPost(uid, pid string, direction float64) error { //由于ZScore方�
 	}
 	//2.更新帖子分数
 	old := rdb.ZScore(getRedisKey(keyPostVotedZSetPrefix+pid), uid).Val()
+	//判断是否重复投票
+	if direction == old {
+		return ErrorVoteRepeat
+	}
 	diff := (direction - old) * scorePerVote
 	//对分数和投票用户记录的操作应当在一个pipeline完成
 	pipeline := rdb.TxPipeline()
@@ -31,22 +36,6 @@ func VoteForPost(uid, pid string, direction float64) error { //由于ZScore方�
 	pipeline.ZAdd(getRedisKey(keyPostVotedZSetPrefix+pid), redis.Z{
 		Score:  direction,
 		Member: uid,
-	})
-	_, err := pipeline.Exec()
-	return err
-}
-
-func CreatePost(pid int64) error {
-	pipeline := rdb.TxPipeline() //我们希望记录发帖时间和设置初始分数的事务同时发生，因此用pipeline
-	//记录发帖时间
-	pipeline.ZAdd(getRedisKey(KeyPostTimeZSet), redis.Z{
-		Score:  float64(time.Now().Unix()),
-		Member: pid,
-	})
-	//设置初始分数
-	pipeline.ZAdd(getRedisKey(keyPostScoreZSet), redis.Z{
-		Score:  float64(time.Now().Unix()),
-		Member: pid,
 	})
 	_, err := pipeline.Exec()
 	return err

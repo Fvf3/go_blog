@@ -25,7 +25,7 @@ func Setup(mode string) *gin.Engine {
 		v1.GET("/post/:id", controller.GetPostHandler)
 		v1.GET("/posts", controller.GetPostListHandler)
 		v1.POST("/vote", controller.VotePostHandler)
-		v1.GET("/post2", controller.GetPostListHandler2())
+		v1.GET("/posts2", controller.GetPostList2Handler)
 	}
 	r.GET("/hello", func(c *gin.Context) {
 		c.String(http.StatusOK, "hello")

@@ -1,5 +1,10 @@
 package models
 
+const (
+	OrderTime  = "time"
+	OrderScore = "score"
+)
+
 // ParamSignUp 请求参数的结构体
 type ParamSignUp struct {
 	Username   string `json:"username" binding:"required"`
@@ -18,7 +23,8 @@ type ParamVote struct {
 }
 
 type ParamPostList struct {
-	Page  int64  `form:"page"`
-	Size  int64  `form:"size"`
-	Order string `form:"order"`
+	Page        int64  `form:"page"`
+	Size        int64  `form:"size"`
+	Order       string `form:"order"`
+	CommunityID int64  `form:"community_id"`
 }
