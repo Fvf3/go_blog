@@ -6,6 +6,7 @@ import (
 	"go_blog/logger"
 	"go_blog/middlewares"
 	"net/http"
+	"time"
 )
 
 func Setup(mode string) *gin.Engine {
@@ -13,7 +14,7 @@ func Setup(mode string) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(logger.GinLogger(), logger.GinRecovery(true)) //通过在指定的路由方法添加认证中间件，校验是否登陆
+	r.Use(logger.GinLogger(), logger.GinRecovery(true), middlewares.RateLimitMiddleware(2*time.Second, 1)) //通过在指定的路由方法添加认证中间件，校验是否登陆
 	v1 := r.Group("/api/v1")
 	v1.POST("/signup", controller.SignUpHandler) //注册
 	v1.POST("/login", controller.LoginHandler)   //登陆以获取token
